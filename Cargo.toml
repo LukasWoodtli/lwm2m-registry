@@ -1,0 +1,9 @@
+[package]
+name = "lwm2m-registry"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde-xml-rs = "0.6.0"
+serde = { version = "1.0.215", features = ["derive"] }
+tokio = { version = "1.4.11", features = ["fs", "io-util", "macros", "rt"] }
