@@ -11,12 +11,17 @@ async fn test_parse_spec_file() -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open(d).await?;
 
     let expected = LwM2MSpec {
-        object: Object {
+        objects: vec![Object {
             name: "LWM2M Security".to_string(),
-        },
+            object_id: 0,
+            object_urn: "urn:oma:lwm2m:oma:0:1.2".to_string(),
+            lwm2m_version: "1.1".to_string(),
+            has_multiple_instances: true,
+            is_mandatory: true,
+        }],
     };
 
     let actual = deserialize_spec_file(file).await?;
-    assert_eq!(actual.object, expected.object);
+    assert_eq!(actual, expected);
     Ok(())
 }
