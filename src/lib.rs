@@ -58,6 +58,75 @@ impl FromStr for Version {
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
+pub struct Resources {
+    #[serde(rename = "Item")]
+    pub items: Vec<Resource>,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub enum Operations {
+    Read,
+    Write,
+    ReadWrite,
+    Execute,
+    None,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub enum ResourceType {
+    String,
+    Integer,
+    Float,
+    Boolean,
+    Opaque,
+    Time,
+    ObjectLink,
+    UnsignedInteger,
+    Corelink,
+    Other,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct Resource {
+    #[serde(rename = "ID")]
+    pub id: u16, // Number of resources is 'unbound' in XSD
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "Operations", deserialize_with = "deserialize_operations")]
+    pub operations: Operations,
+
+    #[serde(
+        rename = "MultipleInstances",
+        deserialize_with = "deserialize_multiple_instances"
+    )]
+    pub has_multiple_instances: bool,
+    #[serde(rename = "Mandatory", deserialize_with = "deserialize_mandatory")]
+    pub is_mandatory: bool,
+    #[serde(rename = "Type", deserialize_with = "deserialize_resource_type")]
+    pub resource_type: ResourceType,
+}
+
+impl Resource {
+    pub fn new(
+        id: u16,
+        name: String,
+        operations: Operations,
+        has_multiple_instances: bool,
+        is_mandatory: bool,
+        resource_type: ResourceType,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            operations,
+            has_multiple_instances,
+            is_mandatory,
+            resource_type,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct Object {
     #[serde(rename = "Name")]
     pub name: String,
@@ -76,6 +145,8 @@ pub struct Object {
     pub has_multiple_instances: bool,
     #[serde(rename = "Mandatory", deserialize_with = "deserialize_mandatory")]
     pub is_mandatory: bool,
+    #[serde(rename = "Resources")]
+    pub resources: Resources,
 }
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "PascalCase")]
@@ -123,6 +194,41 @@ where
         "Mandatory" => Ok(true),
         "Optional" => Ok(false),
         _ => Err(Error::unknown_variant(&s, &["Mandatory", "Optional"])),
+    }
+}
+
+fn deserialize_operations<'de, D>(deserializer: D) -> Result<Operations, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+
+    match s.as_str() {
+        "R" => Ok(Operations::Read),
+        "W" => Ok(Operations::Write),
+        "RW" => Ok(Operations::ReadWrite),
+        "E" => Ok(Operations::Execute),
+        _ => Ok(Operations::None),
+    }
+}
+
+fn deserialize_resource_type<'de, D>(deserializer: D) -> Result<ResourceType, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+
+    match s.as_str() {
+        "String" => Ok(ResourceType::String),
+        "Integer" => Ok(ResourceType::Integer),
+        "Float" => Ok(ResourceType::Float),
+        "Boolean" => Ok(ResourceType::Boolean),
+        "Opaque" => Ok(ResourceType::Opaque),
+        "Time" => Ok(ResourceType::Time),
+        "Objlnk" => Ok(ResourceType::ObjectLink),
+        "Unsigned Integer" => Ok(ResourceType::UnsignedInteger),
+        "Corelnk" => Ok(ResourceType::Corelink),
+        _ => Ok(ResourceType::Other),
     }
 }
 
