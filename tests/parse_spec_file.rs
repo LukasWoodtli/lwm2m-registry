@@ -1,5 +1,5 @@
-use lwm2m_registry::LwM2MSpec;
 use lwm2m_registry::{deserialize_spec_file, Object};
+use lwm2m_registry::{LwM2MSpec, Version};
 use std::path::PathBuf;
 use tokio::fs::File;
 
@@ -15,7 +15,8 @@ async fn test_parse_spec_file() -> Result<(), Box<dyn std::error::Error>> {
             name: "LWM2M Security".to_string(),
             object_id: 0,
             object_urn: "urn:oma:lwm2m:oma:0:1.2".to_string(),
-            lwm2m_version: "1.1".to_string(),
+            object_version: Version::new(1, 2),
+            lwm2m_version: Version::new(1, 1),
             has_multiple_instances: true,
             is_mandatory: true,
         }],
