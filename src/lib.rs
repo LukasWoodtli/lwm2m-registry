@@ -2,10 +2,12 @@ use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer};
 use serde_xml_rs::from_str;
 use std::num::ParseIntError;
+use std::path::PathBuf;
 use std::str::from_utf8;
 use std::str::FromStr;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
+use walkdir::WalkDir;
 
 #[derive(Debug, PartialEq)]
 pub struct Version {
@@ -243,4 +245,52 @@ pub async fn deserialize_spec_file(
     let item: LwM2MSpec = from_str(str)?;
 
     Ok(item)
+}
+
+async fn load(directories: &Vec<PathBuf>) -> anyhow::Result<Vec<Object>> {
+    let mut objects = Vec::new();
+
+    for directory in directories {
+        for entry in WalkDir::new(directory) {
+            let entry = entry?;
+            if entry.file_type().is_file() {
+                let f_name = entry.path().to_string_lossy();
+
+                if f_name.ends_with(".xml") {
+                    if let Ok(file) = File::open(entry.into_path()).await {
+                        if let Ok(spec) = deserialize_spec_file(file).await {
+                            for object in spec.objects {
+                                objects.push(object);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(objects)
+}
+
+pub struct Registry {
+    directories: Vec<PathBuf>,
+    pub objects: Vec<Object>,
+}
+
+impl Registry {
+    pub async fn init(directories: Vec<PathBuf>) -> anyhow::Result<Registry> {
+        let binding = directories.clone();
+        let objects = load(&binding);
+        let objects = objects.await?;
+        let reg = Registry {
+            directories,
+            objects,
+        };
+
+        Ok(reg)
+    }
+
+    pub async fn reload(&mut self) -> anyhow::Result<()> {
+        self.objects = load(&self.directories).await?;
+        Ok(())
+    }
 }
