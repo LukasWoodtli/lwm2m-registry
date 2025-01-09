@@ -147,8 +147,8 @@ pub struct Object {
     pub has_multiple_instances: bool,
     #[serde(rename = "Mandatory", deserialize_with = "deserialize_mandatory")]
     pub is_mandatory: bool,
-    #[serde(rename = "Resources")]
-    pub resources: Resources,
+    #[serde(rename = "Resources", deserialize_with = "unwrap_resources_list")]
+    pub resources: Vec<Resource>,
 }
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "PascalCase")]
@@ -197,6 +197,20 @@ where
         "Optional" => Ok(false),
         _ => Err(Error::unknown_variant(&s, &["Mandatory", "Optional"])),
     }
+}
+
+fn unwrap_resources_list<'de, D>(deserializer: D) -> Result<Vec<Resource>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    /// Represents <Resources>...</Resources>
+    #[derive(Deserialize)]
+    struct Resources {
+        // default allows empty list
+        #[serde(default, rename = "Item")]
+        item: Vec<Resource>,
+    }
+    Ok(Resources::deserialize(deserializer)?.item)
 }
 
 fn deserialize_operations<'de, D>(deserializer: D) -> Result<Operations, D::Error>

@@ -72,11 +72,10 @@ async fn test_parse_spec_file() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(object.lwm2m_version, Version::new(1, 1));
     assert!(object.has_multiple_instances);
     assert!(object.is_mandatory);
-    assert_eq!(object.resources.items.len(), 31);
-    assert_eq!(object.resources.items.len(), 31);
+    assert_eq!(object.resources.len(), 31);
     let num_resources_to_check = expected_first_resources.len();
     assert_eq!(
-        object.resources.items[0..num_resources_to_check],
+        object.resources[0..num_resources_to_check],
         expected_first_resources
     );
 
