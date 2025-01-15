@@ -195,4 +195,10 @@ impl Registry {
         self.objects = spec_files::load(&self.directories).await?;
         Ok(())
     }
+
+    pub fn has_object_id(&self, object_id: u16, version: Version) -> bool {
+        self.objects
+            .iter()
+            .any(|o| o.object_id == object_id && o.object_version == version)
+    }
 }
