@@ -292,8 +292,8 @@ pub struct Registry {
 
 impl Registry {
     pub async fn init(directories: Vec<PathBuf>) -> anyhow::Result<Registry> {
-        let binding = directories.clone();
-        let objects = load(&binding);
+        let dir = directories.clone();
+        let objects = load(&dir);
         let objects = objects.await?;
         let reg = Registry {
             directories,

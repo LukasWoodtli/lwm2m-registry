@@ -8,6 +8,6 @@ async fn test_load_registry() -> Result<(), Box<dyn std::error::Error>> {
 
     let registry = Registry::init(vec![d]).await?;
 
-    assert_eq!(2, registry.objects.len());
+    assert_eq!(6, registry.objects.len());
     Ok(())
 }
