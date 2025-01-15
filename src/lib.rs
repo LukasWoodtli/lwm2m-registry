@@ -218,6 +218,20 @@ impl Registry {
         obj
     }
 
+    pub fn get_resource_by_id(
+        &self,
+        object_id: u16,
+        version: Version,
+        resource_id: u16,
+    ) -> Option<&Resource> {
+        let obj = self.get_object_by_id(object_id, version);
+        if let Some(obj) = obj {
+            let res = obj.resources.iter().find(|r| r.id == resource_id);
+            return res;
+        }
+        None
+    }
+
     pub fn get_object_id_by_name_newest(&self, name: &str) -> Option<(u16, Version)> {
         let mut objs = self
             .objects
@@ -247,12 +261,9 @@ impl Registry {
         version: Version,
         resource_id: u16,
     ) -> Option<String> {
-        let obj = self.get_object_by_id(object_id, version);
-        if let Some(obj) = obj {
-            let res = obj.resources.iter().find(|r| r.id == resource_id);
-            if let Some(res) = res {
-                return Some(res.name.clone());
-            }
+        let res = self.get_resource_by_id(object_id, version, resource_id);
+        if let Some(res) = res {
+            return Some(res.name.clone());
         }
         None
     }
