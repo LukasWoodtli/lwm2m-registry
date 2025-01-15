@@ -55,3 +55,19 @@ async fn test_get_object_id_by_name_newest_not_found() -> Result<(), Box<dyn std
     assert_eq!(res, None);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_get_object_urn() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_object_urn(3, Version::new(1, 1));
+    assert_eq!(res, Some("urn:oma:lwm2m:oma:3:1.1".to_string()));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_object_urn_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_object_urn(99, Version::new(1, 1));
+    assert_eq!(res, None);
+    Ok(())
+}
