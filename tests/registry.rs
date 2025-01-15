@@ -120,3 +120,27 @@ async fn test_get_resource_type_not_found() -> Result<(), Box<dyn std::error::Er
     assert_eq!(res, None);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_is_resource_multi_instance_true() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.is_resource_multi_instance(3, Version::new(1, 1), 6);
+    assert_eq!(res, Some(true));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_is_resource_multi_instance_false() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.is_resource_multi_instance(3, Version::new(1, 1), 0);
+    assert_eq!(res, Some(false));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_is_resource_multi_instance_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.is_resource_multi_instance(0, Version::new(1, 1), 777);
+    assert_eq!(res, None);
+    Ok(())
+}
