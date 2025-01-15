@@ -296,4 +296,17 @@ impl Registry {
         }
         None
     }
+
+    pub fn is_resource_multi_instance(
+        &self,
+        object_id: u16,
+        version: Version,
+        resource_id: u16,
+    ) -> Option<bool> {
+        let res = self.get_resource_by_id(object_id, version, resource_id);
+        if let Some(res) = res {
+            return Some(res.has_multiple_instances);
+        }
+        None
+    }
 }
