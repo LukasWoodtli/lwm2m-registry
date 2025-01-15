@@ -23,3 +23,19 @@ async fn test_has_object_id() -> Result<(), Box<dyn std::error::Error>> {
     assert!(!registry.has_object_id(1, Version::new(2, 1)));
     Ok(())
 }
+
+#[tokio::test]
+async fn test_get_object_name() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let name = registry.get_object_name(3, Version::new(1, 1));
+    assert_eq!(name, Some("Device".to_string()));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_object_name_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let name = registry.get_object_name(9, Version::new(2, 0));
+    assert_eq!(name, None);
+    Ok(())
+}

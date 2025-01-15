@@ -201,4 +201,15 @@ impl Registry {
             .iter()
             .any(|o| o.object_id == object_id && o.object_version == version)
     }
+
+    pub fn get_object_name(&self, object_id: u16, version: Version) -> Option<String> {
+        let obj = self
+            .objects
+            .iter()
+            .find(|o| o.object_id == object_id && o.object_version == version);
+        if let Some(obj) = obj {
+            return Some(obj.name.clone());
+        }
+        None
+    }
 }
