@@ -203,14 +203,19 @@ impl Registry {
     }
 
     pub fn get_object_name(&self, object_id: u16, version: Version) -> Option<String> {
-        let obj = self
-            .objects
-            .iter()
-            .find(|o| o.object_id == object_id && o.object_version == version);
+        let obj = self.get_object_by_id(object_id, version);
         if let Some(obj) = obj {
             return Some(obj.name.clone());
         }
         None
+    }
+
+    pub fn get_object_by_id(&self, object_id: u16, version: Version) -> Option<&Object> {
+        let obj = self
+            .objects
+            .iter()
+            .find(|o| o.object_id == object_id && o.object_version == version);
+        obj
     }
 
     pub fn get_object_id_by_name_newest(&self, name: &str) -> Option<(u16, Version)> {
@@ -229,10 +234,7 @@ impl Registry {
     }
 
     pub fn get_object_urn(&self, object_id: u16, version: Version) -> Option<String> {
-        let obj = self
-            .objects
-            .iter()
-            .find(|o| o.object_id == object_id && o.object_version == version);
+        let obj = self.get_object_by_id(object_id, version);
         if let Some(obj) = obj {
             return Some(obj.object_urn.clone());
         }
@@ -245,10 +247,7 @@ impl Registry {
         version: Version,
         resource_id: u16,
     ) -> Option<String> {
-        let obj = self
-            .objects
-            .iter()
-            .find(|o| o.object_id == object_id && o.object_version == version);
+        let obj = self.get_object_by_id(object_id, version);
         if let Some(obj) = obj {
             let res = obj.resources.iter().find(|r| r.id == resource_id);
             if let Some(res) = res {
