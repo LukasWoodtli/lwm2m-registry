@@ -73,12 +73,6 @@ impl FromStr for Version {
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
-pub struct Resources {
-    #[serde(rename = "Item")]
-    pub items: Vec<Resource>,
-}
-
-#[derive(Debug, Deserialize, PartialEq)]
 pub enum Operations {
     Read,
     Write,
