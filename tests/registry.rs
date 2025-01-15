@@ -39,3 +39,19 @@ async fn test_get_object_name_not_found() -> Result<(), Box<dyn std::error::Erro
     assert_eq!(name, None);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_get_object_id_by_name_newest() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_object_id_by_name_newest("LwM2M Server");
+    assert_eq!(res, Some((1, Version::new(1, 2))));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_object_id_by_name_newest_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_object_id_by_name_newest("Unknown Object");
+    assert_eq!(res, None);
+    Ok(())
+}

@@ -12,7 +12,7 @@ use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Version {
     major: u16,
     minor: u16,
@@ -209,6 +209,21 @@ impl Registry {
             .find(|o| o.object_id == object_id && o.object_version == version);
         if let Some(obj) = obj {
             return Some(obj.name.clone());
+        }
+        None
+    }
+
+    pub fn get_object_id_by_name_newest(&self, name: &str) -> Option<(u16, Version)> {
+        let mut objs = self
+            .objects
+            .iter()
+            .filter(|o| o.name == name)
+            .collect::<Vec<&Object>>();
+        objs.sort_by_key(|o| &o.object_version);
+        if !objs.is_empty() {
+            if let Some(obj) = objs.pop() {
+                return Some((obj.object_id, obj.object_version));
+            }
         }
         None
     }
