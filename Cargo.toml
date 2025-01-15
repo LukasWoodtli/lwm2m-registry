@@ -1,7 +1,10 @@
 [package]
 name = "lwm2m-registry"
+description = "A simple registry for LwM2M specification files."
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/LukasWoodtli/lwm2m-registry"
 
 [dependencies]
 serde-xml-rs = "0.6.0"
