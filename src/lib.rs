@@ -227,4 +227,15 @@ impl Registry {
         }
         None
     }
+
+    pub fn get_object_urn(&self, object_id: u16, version: Version) -> Option<String> {
+        let obj = self
+            .objects
+            .iter()
+            .find(|o| o.object_id == object_id && o.object_version == version);
+        if let Some(obj) = obj {
+            return Some(obj.object_urn.clone());
+        }
+        None
+    }
 }
