@@ -1,3 +1,4 @@
+use lwm2m_registry::ResourceType::Opaque;
 use lwm2m_registry::{Registry, Version};
 use std::path::PathBuf;
 
@@ -100,6 +101,22 @@ async fn test_get_resource_id_by_name() -> Result<(), Box<dyn std::error::Error>
 async fn test_get_resource_id_by_name_not_found() -> Result<(), Box<dyn std::error::Error>> {
     let registry = load_test_registry().await?;
     let res = registry.get_resource_id_by_name(3, Version::new(1, 2), "Unknown Resource");
+    assert_eq!(res, None);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_resource_type() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_type(0, Version::new(1, 1), 5);
+    assert_eq!(res, Some(Opaque));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_resource_type_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_type(0, Version::new(1, 1), 99);
     assert_eq!(res, None);
     Ok(())
 }

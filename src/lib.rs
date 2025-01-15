@@ -87,7 +87,7 @@ pub enum Operations {
     None,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, Copy, Clone, PartialEq)]
 pub enum ResourceType {
     String,
     Integer,
@@ -280,6 +280,19 @@ impl Registry {
             if let Some(res) = res {
                 return Some(res.id);
             }
+        }
+        None
+    }
+
+    pub fn get_resource_type(
+        &self,
+        object_id: u16,
+        version: Version,
+        resource_id: u16,
+    ) -> Option<ResourceType> {
+        let res = self.get_resource_by_id(object_id, version, resource_id);
+        if let Some(res) = res {
+            return Some(res.resource_type);
         }
         None
     }
