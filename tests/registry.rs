@@ -71,3 +71,19 @@ async fn test_get_object_urn_not_found() -> Result<(), Box<dyn std::error::Error
     assert_eq!(res, None);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_get_resource_name() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_name(3, Version::new(1, 1), 0);
+    assert_eq!(res, Some("Manufacturer".to_string()));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_resource_name_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_name(3, Version::new(1, 1), 99);
+    assert_eq!(res, None);
+    Ok(())
+}

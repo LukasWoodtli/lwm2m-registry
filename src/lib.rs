@@ -238,4 +238,23 @@ impl Registry {
         }
         None
     }
+
+    pub fn get_resource_name(
+        &self,
+        object_id: u16,
+        version: Version,
+        resource_id: u16,
+    ) -> Option<String> {
+        let obj = self
+            .objects
+            .iter()
+            .find(|o| o.object_id == object_id && o.object_version == version);
+        if let Some(obj) = obj {
+            let res = obj.resources.iter().find(|r| r.id == resource_id);
+            if let Some(res) = res {
+                return Some(res.name.clone());
+            }
+        }
+        None
+    }
 }
