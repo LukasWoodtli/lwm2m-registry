@@ -6,8 +6,8 @@ use tokio::fs::File;
 #[tokio::test]
 async fn test_parse_spec_file() -> Result<(), Box<dyn std::error::Error>> {
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.push("tests/spec_files");
-    d.push("0.xml");
+    d.push("tests/spec_files/lwm2m_1_2");
+    d.push("0-1_2.xml");
     let file = File::open(d).await?;
 
     /* checking only the first few resources */
