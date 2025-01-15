@@ -256,4 +256,20 @@ impl Registry {
         }
         None
     }
+
+    pub fn get_resource_id_by_name(
+        &self,
+        object_id: u16,
+        version: Version,
+        resource_name: &str,
+    ) -> Option<u16> {
+        let obj = self.get_object_by_id(object_id, version);
+        if let Some(obj) = obj {
+            let res = obj.resources.iter().find(|r| r.name == resource_name);
+            if let Some(res) = res {
+                return Some(res.id);
+            }
+        }
+        None
+    }
 }
