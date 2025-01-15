@@ -1,13 +1,16 @@
-use serde::de::{Error, Unexpected};
-use serde::{Deserialize, Deserializer};
-use serde_xml_rs::from_str;
+mod deserialize;
+mod spec_files;
+
+use deserialize::deserialize_mandatory;
+use deserialize::deserialize_multiple_instances;
+use deserialize::deserialize_operations;
+use deserialize::deserialize_resource_type;
+use deserialize::deserialize_unwrap_resources_list;
+use deserialize::deserialize_version;
+use serde::Deserialize;
 use std::num::ParseIntError;
 use std::path::PathBuf;
-use std::str::from_utf8;
 use std::str::FromStr;
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
-use walkdir::WalkDir;
 
 #[derive(Debug, PartialEq)]
 pub struct Version {
@@ -157,7 +160,10 @@ pub struct Object {
     pub has_multiple_instances: bool,
     #[serde(rename = "Mandatory", deserialize_with = "deserialize_mandatory")]
     pub is_mandatory: bool,
-    #[serde(rename = "Resources", deserialize_with = "unwrap_resources_list")]
+    #[serde(
+        rename = "Resources",
+        deserialize_with = "deserialize_unwrap_resources_list"
+    )]
     pub resources: Vec<Resource>,
 }
 #[derive(Debug, Deserialize, PartialEq)]
@@ -165,134 +171,6 @@ pub struct Object {
 pub struct LwM2MSpec {
     #[serde(rename = "Object")]
     pub objects: Vec<Object>,
-}
-
-fn deserialize_version<'de, D>(deserializer: D) -> Result<Version, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: String = Deserialize::deserialize(deserializer)?;
-
-    let version = Version::from_str(&s);
-    match version {
-        Ok(v) => Ok(v),
-        _ => Err(D::Error::invalid_value(
-            Unexpected::Str(&s),
-            &"a valid version string",
-        )),
-    }
-}
-
-fn deserialize_multiple_instances<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: String = Deserialize::deserialize(deserializer)?;
-
-    match s.as_str() {
-        "Multiple" => Ok(true),
-        "Single" => Ok(false),
-        _ => Err(Error::unknown_variant(&s, &["Multiple", "Single"])),
-    }
-}
-
-fn deserialize_mandatory<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: String = Deserialize::deserialize(deserializer)?;
-
-    match s.as_str() {
-        "Mandatory" => Ok(true),
-        "Optional" => Ok(false),
-        _ => Err(Error::unknown_variant(&s, &["Mandatory", "Optional"])),
-    }
-}
-
-fn unwrap_resources_list<'de, D>(deserializer: D) -> Result<Vec<Resource>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    /// Represents <Resources>...</Resources>
-    #[derive(Deserialize)]
-    struct Resources {
-        // default allows empty list
-        #[serde(default, rename = "Item")]
-        item: Vec<Resource>,
-    }
-    Ok(Resources::deserialize(deserializer)?.item)
-}
-
-fn deserialize_operations<'de, D>(deserializer: D) -> Result<Operations, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: String = Deserialize::deserialize(deserializer)?;
-
-    match s.as_str() {
-        "R" => Ok(Operations::Read),
-        "W" => Ok(Operations::Write),
-        "RW" => Ok(Operations::ReadWrite),
-        "E" => Ok(Operations::Execute),
-        _ => Ok(Operations::None),
-    }
-}
-
-fn deserialize_resource_type<'de, D>(deserializer: D) -> Result<ResourceType, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: String = Deserialize::deserialize(deserializer)?;
-
-    match s.as_str() {
-        "String" => Ok(ResourceType::String),
-        "Integer" => Ok(ResourceType::Integer),
-        "Float" => Ok(ResourceType::Float),
-        "Boolean" => Ok(ResourceType::Boolean),
-        "Opaque" => Ok(ResourceType::Opaque),
-        "Time" => Ok(ResourceType::Time),
-        "Objlnk" => Ok(ResourceType::ObjectLink),
-        "Unsigned Integer" => Ok(ResourceType::UnsignedInteger),
-        "Corelnk" => Ok(ResourceType::Corelink),
-        _ => Ok(ResourceType::Other),
-    }
-}
-
-pub async fn deserialize_spec_file(
-    mut file: File,
-) -> Result<LwM2MSpec, Box<dyn std::error::Error>> {
-    let mut contents = vec![];
-    file.read_to_end(&mut contents).await?;
-
-    let str = from_utf8(contents.as_slice())?;
-
-    let item: LwM2MSpec = from_str(str)?;
-
-    Ok(item)
-}
-
-async fn load(directories: &Vec<PathBuf>) -> anyhow::Result<Vec<Object>> {
-    let mut objects = Vec::new();
-
-    for directory in directories {
-        for entry in WalkDir::new(directory) {
-            let entry = entry?;
-            if entry.file_type().is_file() {
-                let f_name = entry.path().to_string_lossy();
-
-                if f_name.ends_with(".xml") {
-                    if let Ok(file) = File::open(entry.into_path()).await {
-                        if let Ok(spec) = deserialize_spec_file(file).await {
-                            for object in spec.objects {
-                                objects.push(object);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    Ok(objects)
 }
 
 pub struct Registry {
@@ -303,7 +181,7 @@ pub struct Registry {
 impl Registry {
     pub async fn init(directories: Vec<PathBuf>) -> anyhow::Result<Registry> {
         let dir = directories.clone();
-        let objects = load(&dir);
+        let objects = spec_files::load(&dir);
         let objects = objects.await?;
         let reg = Registry {
             directories,
@@ -314,7 +192,7 @@ impl Registry {
     }
 
     pub async fn reload(&mut self) -> anyhow::Result<()> {
-        self.objects = load(&self.directories).await?;
+        self.objects = spec_files::load(&self.directories).await?;
         Ok(())
     }
 }
