@@ -309,4 +309,11 @@ impl Registry {
         }
         None
     }
+
+    pub fn get_object_ids(&self) -> Vec<(u16, Version)> {
+        self.objects
+            .iter()
+            .map(|o| (o.object_id, o.object_version))
+            .collect()
+    }
 }

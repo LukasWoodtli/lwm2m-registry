@@ -144,3 +144,25 @@ async fn test_is_resource_multi_instance_not_found() -> Result<(), Box<dyn std::
     assert_eq!(res, None);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_get_object_ids() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let mut res = registry.get_object_ids();
+    assert_eq!(res.len(), 6);
+
+    let mut expected = vec![
+        (0, Version::new(1, 1)),
+        (1, Version::new(1, 1)),
+        (3, Version::new(1, 1)),
+        (0, Version::new(1, 2)),
+        (1, Version::new(1, 2)),
+        (3, Version::new(1, 2)),
+    ];
+
+    res.sort();
+    expected.sort();
+    assert_eq!(res, expected);
+
+    Ok(())
+}
