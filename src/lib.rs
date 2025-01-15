@@ -21,18 +21,31 @@ impl Version {
     }
 
     fn parse_digit(num: Option<&str>) -> Result<u16, ParseVersionError> {
-        let num = num.ok_or(ParseVersionError)?;
-        let num: u16 = num.parse()?;
-        Ok(num)
+        if let Some(num) = num {
+            let num: u16 = num.parse()?;
+            Ok(num)
+        } else {
+            Err(ParseVersionError::new("NO_VALUE"))
+        }
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ParseVersionError;
+pub struct ParseVersionError {
+    msg: String,
+}
+
+impl ParseVersionError {
+    fn new(s: &str) -> Self {
+        Self {
+            msg: format!("Could not parse string: {}", s),
+        }
+    }
+}
 
 impl From<ParseIntError> for ParseVersionError {
-    fn from(_: ParseIntError) -> Self {
-        ParseVersionError
+    fn from(int_error: ParseIntError) -> Self {
+        ParseVersionError::new(int_error.to_string().as_str())
     }
 }
 
@@ -51,10 +64,7 @@ impl FromStr for Version {
                 major: Self::parse_digit(numbers.next())?,
                 minor: Self::parse_digit(numbers.next())?,
             }),
-            0 | 3.. => Ok(Version {
-                major: 99,
-                minor: 99,
-            }),
+            0 | 3.. => Err(Self::Err::new(s)),
         }
     }
 }
