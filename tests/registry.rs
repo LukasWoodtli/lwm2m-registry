@@ -87,3 +87,19 @@ async fn test_get_resource_name_not_found() -> Result<(), Box<dyn std::error::Er
     assert_eq!(res, None);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_get_resource_id_by_name() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_id_by_name(3, Version::new(1, 2), "Factory Reset");
+    assert_eq!(res, Some(5));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_resource_id_by_name_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_id_by_name(3, Version::new(1, 2), "Unknown Resource");
+    assert_eq!(res, None);
+    Ok(())
+}
