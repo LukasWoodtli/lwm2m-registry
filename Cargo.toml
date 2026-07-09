@@ -10,6 +10,12 @@ repository = "https://github.com/LukasWoodtli/lwm2m-registry"
 serde-xml-rs = "0.6.0"
 serde = { version = "1.0.215", features = ["derive"] }
 tokio = { version = "1.4.11", features = ["fs", "io-util", "macros", "rt"] }
-tokio-test = "0.4.4"
 anyhow = "1.0.93"
 walkdir = "2.5"
+
+[dev-dependencies]
+tokio-test = "0.4.4"
+
+[package.metadata.cargo-machete]
+# tokio-test is only used in doctests, which cargo-machete does not scan
+ignored = ["tokio-test"]
