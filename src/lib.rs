@@ -389,3 +389,70 @@ impl Registry {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_version_from_str_major_only() {
+        assert_eq!(Version::from_str("2"), Ok(Version::new(2, 0)));
+    }
+
+    #[test]
+    fn test_version_from_str_major_minor() {
+        assert_eq!(Version::from_str("1.2"), Ok(Version::new(1, 2)));
+    }
+
+    #[test]
+    fn test_version_from_str_trims_whitespace() {
+        assert_eq!(Version::from_str(" 1.1 "), Ok(Version::new(1, 1)));
+    }
+
+    #[test]
+    fn test_version_from_str_too_many_parts() {
+        assert_eq!(
+            Version::from_str("1.2.3"),
+            Err(ParseVersionError::new("1.2.3"))
+        );
+    }
+
+    #[test]
+    fn test_version_from_str_not_a_number() {
+        assert!(Version::from_str("a.b").is_err());
+        assert!(Version::from_str("").is_err());
+        assert!(Version::from_str("1.x").is_err());
+    }
+
+    #[test]
+    fn test_version_ordering() {
+        assert!(Version::new(1, 2) > Version::new(1, 1));
+        assert!(Version::new(2, 0) > Version::new(1, 9));
+        assert_eq!(Version::new(1, 0), Version::new(1, 0));
+    }
+
+    #[test]
+    fn test_parse_digit_no_value() {
+        assert_eq!(
+            Version::parse_digit(None),
+            Err(ParseVersionError::new("NO_VALUE"))
+        );
+    }
+
+    #[test]
+    fn test_parse_version_error_from_parse_int_error() {
+        let int_error = "x".parse::<u16>().unwrap_err();
+        let error = ParseVersionError::from(int_error);
+        assert!(error.msg.contains("invalid digit"));
+    }
+
+    #[test]
+    fn test_debug_formatting() {
+        assert_eq!(
+            format!("{:?}", Version::new(1, 0)),
+            "Version { major: 1, minor: 0 }"
+        );
+        assert_eq!(format!("{:?}", Operations::ReadWrite), "ReadWrite");
+        assert_eq!(format!("{:?}", ResourceType::Time), "Time");
+    }
+}

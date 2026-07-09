@@ -18,6 +18,106 @@ async fn test_load_registry() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
+async fn test_reload() -> Result<(), Box<dyn std::error::Error>> {
+    let mut registry = load_test_registry().await?;
+    registry.reload().await?;
+
+    assert_eq!(6, registry.objects.len());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_init_nonexistent_directory_fails() {
+    let d = PathBuf::from("/nonexistent/directory");
+    let registry = Registry::init(vec![d]).await;
+    assert!(registry.is_err());
+}
+
+#[tokio::test]
+async fn test_reload_fails_when_directory_removed() -> Result<(), Box<dyn std::error::Error>> {
+    let dir = std::env::temp_dir().join(format!("lwm2m_registry_reload_{}", std::process::id()));
+    std::fs::create_dir_all(&dir)?;
+    let mut registry = Registry::init(vec![dir.clone()]).await?;
+    std::fs::remove_dir_all(&dir)?;
+
+    assert!(registry.reload().await.is_err());
+    Ok(())
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn test_init_skips_unreadable_files() -> Result<(), Box<dyn std::error::Error>> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir =
+        std::env::temp_dir().join(format!("lwm2m_registry_unreadable_{}", std::process::id()));
+    std::fs::create_dir_all(&dir)?;
+    let file = dir.join("unreadable.xml");
+    std::fs::write(&file, "<LWM2M></LWM2M>")?;
+    std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o000))?;
+
+    let registry = Registry::init(vec![dir.clone()]).await?;
+
+    std::fs::remove_dir_all(&dir)?;
+    assert!(registry.objects.is_empty());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_init_skips_invalid_files() -> Result<(), Box<dyn std::error::Error>> {
+    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.push("tests/invalid_spec_files");
+    let registry = Registry::init(vec![d]).await?;
+
+    assert!(registry.objects.is_empty());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_object_by_id() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let obj = registry.get_object_by_id(3, Version::new(1, 1));
+    let obj = obj.expect("object 3 should exist");
+    assert_eq!(obj.name, "Device");
+    assert_eq!(obj.object_id, 3);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_object_by_id_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let obj = registry.get_object_by_id(3, Version::new(9, 9));
+    assert!(obj.is_none());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_resource_by_id() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_by_id(3, Version::new(1, 1), 0);
+    let res = res.expect("resource 0 of object 3 should exist");
+    assert_eq!(res.name, "Manufacturer");
+    assert_eq!(res.id, 0);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_resource_by_id_object_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_by_id(99, Version::new(1, 1), 0);
+    assert!(res.is_none());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_resource_id_by_name_object_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = load_test_registry().await?;
+    let res = registry.get_resource_id_by_name(99, Version::new(1, 1), "Manufacturer");
+    assert_eq!(res, None);
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_has_object_id() -> Result<(), Box<dyn std::error::Error>> {
     let registry = load_test_registry().await?;
     assert!(registry.has_object_id(1, Version::new(1, 1)));

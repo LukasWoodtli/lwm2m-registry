@@ -1,0 +1,5 @@
+<LWM2M>
+  <Object>
+    <Name>Broken Object</Name>
+    <!-- missing mandatory elements and unclosed tag -->
+  </Object>
