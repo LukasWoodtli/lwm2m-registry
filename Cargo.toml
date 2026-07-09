@@ -3,6 +3,7 @@ name = "lwm2m-registry"
 description = "A simple registry for LwM2M specification files."
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.75"
 license = "MIT"
 repository = "https://github.com/LukasWoodtli/lwm2m-registry"
 
