@@ -135,7 +135,7 @@ pub enum ResourceType {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct Resource {
     /// The resource ID.
-    #[serde(rename = "ID")]
+    #[serde(rename = "@ID")]
     pub id: u16, // Number of resources is 'unbound' in XSD
     /// The name of the resource.
     #[serde(rename = "Name")]
