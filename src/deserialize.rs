@@ -95,3 +95,117 @@ where
         _ => Ok(ResourceType::Other),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::de::value::{Error as ValueError, StrDeserializer, U32Deserializer};
+    use serde::de::IntoDeserializer;
+
+    #[allow(mismatched_lifetime_syntaxes)]
+    fn str_deserializer(s: &str) -> StrDeserializer<ValueError> {
+        s.into_deserializer()
+    }
+
+    fn non_string_deserializer() -> U32Deserializer<ValueError> {
+        42u32.into_deserializer()
+    }
+
+    #[test]
+    fn test_deserialize_non_string_input() {
+        assert!(deserialize_version(non_string_deserializer()).is_err());
+        assert!(deserialize_multiple_instances(non_string_deserializer()).is_err());
+        assert!(deserialize_mandatory(non_string_deserializer()).is_err());
+        assert!(deserialize_operations(non_string_deserializer()).is_err());
+        assert!(deserialize_resource_type(non_string_deserializer()).is_err());
+        assert!(deserialize_unwrap_resources_list(non_string_deserializer()).is_err());
+    }
+
+    #[test]
+    fn test_deserialize_version() {
+        assert_eq!(
+            deserialize_version(str_deserializer("1.2")),
+            Ok(Version::new(1, 2))
+        );
+    }
+
+    #[test]
+    fn test_deserialize_version_invalid() {
+        assert!(deserialize_version(str_deserializer("not a version")).is_err());
+        assert!(deserialize_version(str_deserializer("1.2.3")).is_err());
+    }
+
+    #[test]
+    fn test_deserialize_multiple_instances() {
+        assert_eq!(
+            deserialize_multiple_instances(str_deserializer("Multiple")),
+            Ok(true)
+        );
+        assert_eq!(
+            deserialize_multiple_instances(str_deserializer("Single")),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn test_deserialize_multiple_instances_invalid() {
+        assert!(deserialize_multiple_instances(str_deserializer("Both")).is_err());
+    }
+
+    #[test]
+    fn test_deserialize_mandatory() {
+        assert_eq!(
+            deserialize_mandatory(str_deserializer("Mandatory")),
+            Ok(true)
+        );
+        assert_eq!(
+            deserialize_mandatory(str_deserializer("Optional")),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn test_deserialize_mandatory_invalid() {
+        assert!(deserialize_mandatory(str_deserializer("Maybe")).is_err());
+    }
+
+    #[test]
+    fn test_deserialize_operations() {
+        let cases = [
+            ("R", Operations::Read),
+            ("W", Operations::Write),
+            ("RW", Operations::ReadWrite),
+            ("E", Operations::Execute),
+            ("", Operations::None),
+            ("X", Operations::None),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(
+                deserialize_operations(str_deserializer(input)),
+                Ok(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn test_deserialize_resource_type() {
+        let cases = [
+            ("String", ResourceType::String),
+            ("Integer", ResourceType::Integer),
+            ("Float", ResourceType::Float),
+            ("Boolean", ResourceType::Boolean),
+            ("Opaque", ResourceType::Opaque),
+            ("Time", ResourceType::Time),
+            ("Objlnk", ResourceType::ObjectLink),
+            ("Unsigned Integer", ResourceType::UnsignedInteger),
+            ("Corelnk", ResourceType::Corelink),
+            ("Something Else", ResourceType::Other),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(
+                deserialize_resource_type(str_deserializer(input)),
+                Ok(expected)
+            );
+        }
+    }
+}

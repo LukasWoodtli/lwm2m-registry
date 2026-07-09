@@ -1,0 +1,1 @@
+Not an XML file, must be ignored by the registry.
