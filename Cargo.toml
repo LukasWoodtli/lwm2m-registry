@@ -8,10 +8,11 @@ license = "MIT"
 repository = "https://github.com/LukasWoodtli/lwm2m-registry"
 
 [dependencies]
-serde-xml-rs = "0.6.0"
-serde = { version = "1.0.215", features = ["derive"] }
-tokio = { version = "1.4.11", features = ["fs", "io-util", "macros", "rt"] }
-anyhow = "1.0.93"
+serde-xml-rs = "0.8"
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.52.3", features = ["fs", "io-util", "macros", "rt"] }
+tokio-test = "0.4.5"
+anyhow = "1.0.103"
 walkdir = "2.5"
 
 [dev-dependencies]
