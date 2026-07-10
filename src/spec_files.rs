@@ -6,22 +6,22 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use walkdir::WalkDir;
 
-pub async fn load(directories: &Vec<PathBuf>) -> anyhow::Result<Vec<Object>> {
+pub async fn load(directories: &[PathBuf]) -> anyhow::Result<Vec<Object>> {
     let mut objects = Vec::new();
 
     for directory in directories {
         for entry in WalkDir::new(directory) {
             let entry = entry?;
-            if entry.file_type().is_file() {
-                let f_name = entry.path().to_string_lossy();
+            let is_xml_file = entry.file_type().is_file()
+                && entry
+                    .path()
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case("xml"));
 
-                if f_name.ends_with(".xml") {
-                    if let Ok(file) = File::open(entry.into_path()).await {
-                        if let Ok(spec) = deserialize_spec_file(file).await {
-                            for object in spec.objects {
-                                objects.push(object);
-                            }
-                        }
+            if is_xml_file {
+                if let Ok(file) = File::open(entry.into_path()).await {
+                    if let Ok(spec) = deserialize_spec_file(file).await {
+                        objects.extend(spec.objects);
                     }
                 }
             }
