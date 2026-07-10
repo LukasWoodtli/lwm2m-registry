@@ -54,6 +54,11 @@ pub async fn load(directories: &[PathBuf]) -> anyhow::Result<Vec<Object>> {
             );
         }
     }
+    // Release over-allocated capacity so only the parsed data stays in memory.
+    for object in &mut objects {
+        object.resources.shrink_to_fit();
+    }
+    objects.shrink_to_fit();
     info!(
         "Loaded {} objects from {} directories",
         objects.len(),
