@@ -19,10 +19,15 @@ pub async fn load(directories: &[PathBuf]) -> anyhow::Result<Vec<Object>> {
                     .is_some_and(|e| e.eq_ignore_ascii_case("xml"));
 
             if is_xml_file {
-                if let Ok(file) = File::open(entry.into_path()).await {
-                    if let Ok(spec) = deserialize_spec_file(file).await {
-                        objects.extend(spec.objects);
-                    }
+                let path = entry.into_path();
+                match File::open(&path).await {
+                    Ok(file) => match deserialize_spec_file(file).await {
+                        Ok(spec) => objects.extend(spec.objects),
+                        Err(e) => {
+                            log::warn!("Ignoring unparsable spec file {}: {}", path.display(), e)
+                        }
+                    },
+                    Err(e) => log::warn!("Ignoring unreadable spec file {}: {}", path.display(), e),
                 }
             }
         }

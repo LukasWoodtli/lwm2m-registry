@@ -12,4 +12,5 @@ serde-xml-rs = "0.8"
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.52.3", features = ["fs", "io-util", "macros", "rt"] }
 anyhow = "1.0.103"
+log = "0.4"
 walkdir = "2.5"
