@@ -14,6 +14,19 @@
 //! assert!(registry.has_object_id(3, Version::new(1, 1)));
 //! # })
 //! ```
+//!
+//! # Logging
+//!
+//! This crate logs through the [`log`](https://docs.rs/log) facade; install a logger
+//! implementation (e.g. `env_logger`) in your application to see the output.
+//!
+//! - `warn`: problems relevant for troubleshooting, such as spec files that are
+//!   skipped because they can't be read or parsed, or directories that yield no
+//!   spec files at all.
+//! - `info`: a summary of how many objects were loaded.
+//! - `debug`: details for developers, such as each scanned directory and each
+//!   loaded object.
+//! - `trace`: every spec file as it is read.
 mod deserialize;
 mod spec_files;
 
@@ -252,6 +265,7 @@ impl Registry {
 
     /// Discard all the current objects and reload all files to populate the list of objects again.
     pub async fn reload(&mut self) -> anyhow::Result<()> {
+        log::info!("Reloading registry");
         self.objects = spec_files::load(&self.directories).await?;
         Ok(())
     }
