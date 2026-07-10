@@ -4,10 +4,10 @@
 //! It also provides some functions to query the loaded specifications.
 //! ```
 //! # use std::path::PathBuf;
-//! # use tokio_test;
 //! # use lwm2m_registry::Version;
 //! # use crate::lwm2m_registry::Registry;
-//! # tokio_test::block_on(async {
+//! # let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+//! # rt.block_on(async {
 //! let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 //! d.push("tests/spec_files");
 //! let registry = Registry::init(vec![d]).await.unwrap();
@@ -24,12 +24,13 @@ use deserialize::deserialize_resource_type;
 use deserialize::deserialize_unwrap_resources_list;
 use deserialize::deserialize_version;
 use serde::Deserialize;
+use std::fmt;
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 /// This can represent a LwM2M version or an object version.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Version {
     major: u16,
     minor: u16,
@@ -40,14 +41,11 @@ impl Version {
     pub fn new(major: u16, minor: u16) -> Self {
         Self { major, minor }
     }
+}
 
-    fn parse_digit(num: Option<&str>) -> Result<u16, ParseVersionError> {
-        if let Some(num) = num {
-            let num: u16 = num.parse()?;
-            Ok(num)
-        } else {
-            Err(ParseVersionError::new("NO_VALUE"))
-        }
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.major, self.minor)
     }
 }
 
@@ -65,6 +63,14 @@ impl ParseVersionError {
     }
 }
 
+impl fmt::Display for ParseVersionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.msg)
+    }
+}
+
+impl std::error::Error for ParseVersionError {}
+
 impl From<ParseIntError> for ParseVersionError {
     fn from(int_error: ParseIntError) -> Self {
         ParseVersionError::new(int_error.to_string().as_str())
@@ -75,24 +81,23 @@ impl FromStr for Version {
     type Err = ParseVersionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut numbers = s.trim().split('.');
-        let count = numbers.clone().count();
-        match count {
-            1 => Ok(Version {
-                major: Self::parse_digit(numbers.next())?,
+        let numbers = s.trim().split('.').collect::<Vec<_>>();
+        match numbers.as_slice() {
+            [major] => Ok(Version {
+                major: major.parse()?,
                 minor: 0,
             }),
-            2 => Ok(Version {
-                major: Self::parse_digit(numbers.next())?,
-                minor: Self::parse_digit(numbers.next())?,
+            [major, minor] => Ok(Version {
+                major: major.parse()?,
+                minor: minor.parse()?,
             }),
-            0 | 3.. => Err(Self::Err::new(s)),
+            _ => Err(Self::Err::new(s)),
         }
     }
 }
 
 /// Operations that are allowed on a resource.
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Operations {
     /// Resource can be only read.
     Read,
@@ -107,7 +112,7 @@ pub enum Operations {
 }
 
 /// Indicates the type of resource.
-#[derive(Debug, Deserialize, Copy, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ResourceType {
     /// The resource is a string (utf-8).
     String,
@@ -238,15 +243,11 @@ impl Registry {
         The directories are then walked and all XML files that are found are loaded and parsed.
     */
     pub async fn init(directories: Vec<PathBuf>) -> anyhow::Result<Registry> {
-        let dir = directories.clone();
-        let objects = spec_files::load(&dir);
-        let objects = objects.await?;
-        let reg = Registry {
+        let objects = spec_files::load(&directories).await?;
+        Ok(Registry {
             directories,
             objects,
-        };
-
-        Ok(reg)
+        })
     }
 
     /// Discard all the current objects and reload all files to populate the list of objects again.
@@ -264,20 +265,15 @@ impl Registry {
 
     /// Get the object name for a given object ID
     pub fn get_object_name(&self, object_id: u16, version: Version) -> Option<String> {
-        let obj = self.get_object_by_id(object_id, version);
-        if let Some(obj) = obj {
-            return Some(obj.name.clone());
-        }
-        None
+        self.get_object_by_id(object_id, version)
+            .map(|o| o.name.clone())
     }
 
     /// Get the object for a given object ID with version.
     pub fn get_object_by_id(&self, object_id: u16, version: Version) -> Option<&Object> {
-        let obj = self
-            .objects
+        self.objects
             .iter()
-            .find(|o| o.object_id == object_id && o.object_version == version);
-        obj
+            .find(|o| o.object_id == object_id && o.object_version == version)
     }
 
     /// Get a resource by ID for a given object ID with version.
@@ -287,37 +283,25 @@ impl Registry {
         version: Version,
         resource_id: u16,
     ) -> Option<&Resource> {
-        let obj = self.get_object_by_id(object_id, version);
-        if let Some(obj) = obj {
-            let res = obj.resources.iter().find(|r| r.id == resource_id);
-            return res;
-        }
-        None
+        self.get_object_by_id(object_id, version)?
+            .resources
+            .iter()
+            .find(|r| r.id == resource_id)
     }
 
     /** Get an object ID and it's version for a given name. Returns the object with the highest version. */
     pub fn get_object_id_by_name_newest(&self, name: &str) -> Option<(u16, Version)> {
-        let mut objs = self
-            .objects
+        self.objects
             .iter()
             .filter(|o| o.name == name)
-            .collect::<Vec<&Object>>();
-        objs.sort_by_key(|o| &o.object_version);
-        if !objs.is_empty() {
-            if let Some(obj) = objs.pop() {
-                return Some((obj.object_id, obj.object_version));
-            }
-        }
-        None
+            .max_by_key(|o| o.object_version)
+            .map(|o| (o.object_id, o.object_version))
     }
 
     /// Get the object URN for a given object ID with version
     pub fn get_object_urn(&self, object_id: u16, version: Version) -> Option<String> {
-        let obj = self.get_object_by_id(object_id, version);
-        if let Some(obj) = obj {
-            return Some(obj.object_urn.clone());
-        }
-        None
+        self.get_object_by_id(object_id, version)
+            .map(|o| o.object_urn.clone())
     }
 
     /// Get a resource name by ID for a given object ID with version.
@@ -327,11 +311,8 @@ impl Registry {
         version: Version,
         resource_id: u16,
     ) -> Option<String> {
-        let res = self.get_resource_by_id(object_id, version, resource_id);
-        if let Some(res) = res {
-            return Some(res.name.clone());
-        }
-        None
+        self.get_resource_by_id(object_id, version, resource_id)
+            .map(|r| r.name.clone())
     }
 
     /// Get a resource ID by name for a given object ID with version.
@@ -341,14 +322,11 @@ impl Registry {
         version: Version,
         resource_name: &str,
     ) -> Option<u16> {
-        let obj = self.get_object_by_id(object_id, version);
-        if let Some(obj) = obj {
-            let res = obj.resources.iter().find(|r| r.name == resource_name);
-            if let Some(res) = res {
-                return Some(res.id);
-            }
-        }
-        None
+        self.get_object_by_id(object_id, version)?
+            .resources
+            .iter()
+            .find(|r| r.name == resource_name)
+            .map(|r| r.id)
     }
 
     /// Get a resources type by resource ID for a given object ID with version.
@@ -358,11 +336,8 @@ impl Registry {
         version: Version,
         resource_id: u16,
     ) -> Option<ResourceType> {
-        let res = self.get_resource_by_id(object_id, version, resource_id);
-        if let Some(res) = res {
-            return Some(res.resource_type);
-        }
-        None
+        self.get_resource_by_id(object_id, version, resource_id)
+            .map(|r| r.resource_type)
     }
 
     /** Check if a resource can have multiple instances.
@@ -374,11 +349,8 @@ impl Registry {
         version: Version,
         resource_id: u16,
     ) -> Option<bool> {
-        let res = self.get_resource_by_id(object_id, version, resource_id);
-        if let Some(res) = res {
-            return Some(res.has_multiple_instances);
-        }
-        None
+        self.get_resource_by_id(object_id, version, resource_id)
+            .map(|r| r.has_multiple_instances)
     }
 
     /// Get all object ID's with their versions.
@@ -432,11 +404,14 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_digit_no_value() {
-        assert_eq!(
-            Version::parse_digit(None),
-            Err(ParseVersionError::new("NO_VALUE"))
-        );
+    fn test_version_display() {
+        assert_eq!(Version::new(1, 2).to_string(), "1.2");
+    }
+
+    #[test]
+    fn test_parse_version_error_display() {
+        let error = ParseVersionError::new("1.2.3");
+        assert_eq!(error.to_string(), "Could not parse string: 1.2.3");
     }
 
     #[test]

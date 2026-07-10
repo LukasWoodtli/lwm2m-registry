@@ -102,8 +102,7 @@ mod tests {
     use serde::de::value::{Error as ValueError, StrDeserializer, U32Deserializer};
     use serde::de::IntoDeserializer;
 
-    #[allow(mismatched_lifetime_syntaxes)]
-    fn str_deserializer(s: &str) -> StrDeserializer<ValueError> {
+    fn str_deserializer(s: &str) -> StrDeserializer<'_, ValueError> {
         s.into_deserializer()
     }
 
