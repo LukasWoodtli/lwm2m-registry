@@ -1,4 +1,5 @@
 use crate::{LwM2MSpec, Object};
+use log::{debug, info, trace, warn};
 use serde_xml_rs::from_str;
 use std::path::PathBuf;
 use std::str::from_utf8;
@@ -10,6 +11,8 @@ pub async fn load(directories: &[PathBuf]) -> anyhow::Result<Vec<Object>> {
     let mut objects = Vec::new();
 
     for directory in directories {
+        debug!("Scanning directory {} for spec files", directory.display());
+        let mut files_loaded = 0;
         for entry in WalkDir::new(directory) {
             let entry = entry?;
             let is_xml_file = entry.file_type().is_file()
@@ -20,18 +23,42 @@ pub async fn load(directories: &[PathBuf]) -> anyhow::Result<Vec<Object>> {
 
             if is_xml_file {
                 let path = entry.into_path();
+                trace!("Reading spec file {}", path.display());
                 match File::open(&path).await {
                     Ok(file) => match deserialize_spec_file(file).await {
-                        Ok(spec) => objects.extend(spec.objects),
+                        Ok(spec) => {
+                            for object in &spec.objects {
+                                debug!(
+                                    "Loaded object {} '{}' version {} from {}",
+                                    object.object_id,
+                                    object.name,
+                                    object.object_version,
+                                    path.display()
+                                );
+                            }
+                            files_loaded += 1;
+                            objects.extend(spec.objects);
+                        }
                         Err(e) => {
-                            log::warn!("Ignoring unparsable spec file {}: {}", path.display(), e)
+                            warn!("Ignoring unparsable spec file {}: {}", path.display(), e)
                         }
                     },
-                    Err(e) => log::warn!("Ignoring unreadable spec file {}: {}", path.display(), e),
+                    Err(e) => warn!("Ignoring unreadable spec file {}: {}", path.display(), e),
                 }
             }
         }
+        if files_loaded == 0 {
+            warn!(
+                "No spec files loaded from directory {}",
+                directory.display()
+            );
+        }
     }
+    info!(
+        "Loaded {} objects from {} directories",
+        objects.len(),
+        directories.len()
+    );
     Ok(objects)
 }
 
