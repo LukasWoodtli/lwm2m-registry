@@ -56,6 +56,14 @@ impl Version {
     }
 }
 
+/// Version assumed by the LwM2M specification when a spec file omits the
+/// version elements.
+impl Default for Version {
+    fn default() -> Self {
+        Version::new(1, 0)
+    }
+}
+
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}", self.major, self.minor)
@@ -208,11 +216,21 @@ pub struct Object {
     /// The URN of the object.
     #[serde(rename = "ObjectURN")]
     pub object_urn: String,
-    /// The object version
-    #[serde(rename = "ObjectVersion", deserialize_with = "deserialize_version")]
+    /// The object version.
+    /// Defaults to 1.0 when the element is absent, as defined by the LwM2M specification.
+    #[serde(
+        rename = "ObjectVersion",
+        deserialize_with = "deserialize_version",
+        default
+    )]
     pub object_version: Version,
     /// The LwM2M version where the object was introduced.
-    #[serde(rename = "LWM2MVersion", deserialize_with = "deserialize_version")]
+    /// Defaults to 1.0 when the element is absent, as defined by the LwM2M specification.
+    #[serde(
+        rename = "LWM2MVersion",
+        deserialize_with = "deserialize_version",
+        default
+    )]
     pub lwm2m_version: Version,
     /// Indicates it the object can have multiple instances.
     #[serde(
