@@ -90,8 +90,8 @@ where
         "Opaque" => Ok(ResourceType::Opaque),
         "Time" => Ok(ResourceType::Time),
         "Objlnk" => Ok(ResourceType::ObjectLink),
-        "Unsigned Integer" => Ok(ResourceType::UnsignedInteger),
-        "Corelnk" => Ok(ResourceType::Corelink),
+        "Unsigned Integer" | "UnsignedInteger" => Ok(ResourceType::UnsignedInteger),
+        "Corelnk" | "CoreLink" => Ok(ResourceType::Corelink),
         _ => Ok(ResourceType::Other),
     }
 }
