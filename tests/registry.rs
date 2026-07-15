@@ -266,3 +266,17 @@ async fn test_get_object_ids() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_missing_version_elements_default_to_1_0() -> Result<(), Box<dyn std::error::Error>> {
+    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.push("tests/spec_files_optional_versions");
+    let registry = Registry::init(vec![d]).await?;
+
+    assert!(registry.has_object_id(28999, Version::new(1, 0)));
+    let object = registry
+        .get_object_by_id(28999, Version::new(1, 0))
+        .unwrap();
+    assert_eq!(object.lwm2m_version, Version::new(1, 0));
+    Ok(())
+}
